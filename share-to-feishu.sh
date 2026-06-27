@@ -136,3 +136,33 @@ case "${1:-help}" in
     echo "权限: reader(只读) editor(可编辑) admin(管理)"
     ;;
 esac
+
+# ─── 大文件走 COS ───
+cos-upload)
+    [ $# -lt 2 ] && { echo "Usage: $0 cos-upload <文件路径> [备注]"; exit 1; }
+    FILEPATH="$2"
+    NOTE="${3:-}"
+    [ ! -f "$FILEPATH" ] && { echo "ERROR: 文件不存在: $FILEPATH"; exit 1; }
+    
+    FILENAME=$(basename "$FILEPATH")
+    SIZE=$(du -sh "$FILEPATH" | cut -f1)
+    
+    echo "=== 大文件上传到 COS ==="
+    echo "  文件: $FILENAME ($SIZE)"
+    
+    URL=$(python3 "$(dirname "$0")/cos-share.py" upload "$FILEPATH" 2>&1 | grep "下载链接:" | sed 's/.*下载链接: //')
+    
+    if [ -n "$URL" ]; then
+      echo "  ✓ 已上传到 COS"
+      echo "  链接: $URL"
+      # 记录到飞书文件索引
+      lark-cli base +record-upsert \
+        --base-token "$FILE_BASE" \
+        --table-id "$FILE_TABLE" \
+        --json "{\"文件名\":\"$FILENAME\",\"分类\":[\"文档\"],\"上传人\":\"riynat\",\"备注\":\"COS: $URL $NOTE\"}" \
+        --as user --format json >/dev/null 2>&1
+      echo "  ✓ 已记录到飞书文件索引"
+    else
+      echo "  ERROR: 上传失败"
+    fi
+    ;;

@@ -10,7 +10,7 @@ case "${1:-list}" in
     lark-cli base +record-list --base-token "$BASE_TOKEN" --table-id "$TABLE_ID" --as user --format pretty 2>&1
     ;;
   add)
-    [ $# -lt 3 ] && { echo "Usage: $0 add <任务名> [优先级] [截止日期]"; exit 1; }
+    [ $# -lt 2 ] && { echo "Usage: $0 add <任务名> [优先级] [截止日期]"; exit 1; }
     TASK="$2"
     PRI="${3:-P2-中}"
     DUE="${4:-}"
@@ -21,8 +21,7 @@ case "${1:-list}" in
     echo "✓ 已添加: $TASK"
     ;;
   done)
-    [ $# -lt 2 ] && { echo "Usage: $0 done <任务名关键词>"; exit 1; }
-    # 搜索并更新
+    [ $# -lt 2 ] && { echo "Usage: $0 done <关键词>"; exit 1; }
     RECORD=$(lark-cli base +record-search --base-token "$BASE_TOKEN" --table-id "$TABLE_ID" --filter "{\"conditions\":[{\"field_name\":\"任务名称\",\"operator\":\"contains\",\"value\":[\"$2\"]}]}" --as user --format json 2>&1)
     REC_ID=$(echo "$RECORD" | python3 -c "import sys,json;d=json.load(sys.stdin);print(d['data']['items'][0]['record_id'])" 2>/dev/null || echo "")
     [ -z "$REC_ID" ] && { echo "未找到: $2"; exit 1; }
